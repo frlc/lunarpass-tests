@@ -1,5 +1,5 @@
 import { Page, Locator, expect} from "@playwright/test"
-import { Mission } from "../support/mission"
+import { Mission } from "../support/types"
 
 export class RegisterPage {
     readonly page: Page
@@ -11,6 +11,7 @@ export class RegisterPage {
     readonly returnDateInput: Locator
     readonly priceInput: Locator
     readonly saveButton: Locator
+    readonly errorMessageIdFormat: Locator
 
     constructor(page: Page) {
         this.page = page
@@ -22,12 +23,13 @@ export class RegisterPage {
         this.returnDateInput = page.getByTestId('mission-form-return-date')
         this.priceInput = page.getByRole('spinbutton', { name: 'Preço por passagem (USD)' })
         this.saveButton = page.getByRole('button', { name: 'Salvar missão' })
+        this.errorMessageIdFormat = page.getByRole('alert')
     }
 
    async submitMissionForm(mission: Mission) {
         await this.idInput.fill(mission.id)
         await this.rocketInput.fill(mission.rocket)
-        await this.lunarBaseSelect.selectOption(mission.lunarBase)
+        await this.lunarBaseSelect.selectOption(mission.baseId)
         await this.departureDateInput.fill(mission.departureDate)
         await expect(this.returnDateInput).toContainText(mission.returnDate)
         await this.priceInput.fill(mission.price.toString())
