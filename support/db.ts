@@ -36,10 +36,15 @@ export async function deleteTicketById(mission_id: string) {
     return db.deleteFrom('tickets').where('missionId', '=', mission_id).execute()
 }
 
-
 export const dbUtils = {
     insertMission,
     deleteMissionById,
     deleteReservationById,
     deleteTicketById
+}
+
+export async function cleanMissionData(mission: Mission) {
+    await deleteTicketById(mission.id)
+    await deleteReservationById(mission.id)
+    await deleteMissionById(mission.id)
 }

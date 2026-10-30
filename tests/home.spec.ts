@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from '../support'
 
 test('Validar título da aba do navegador', async ({ page }) => {
   await page.goto('http://localhost:3000/')

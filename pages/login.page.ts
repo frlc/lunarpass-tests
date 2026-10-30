@@ -18,7 +18,7 @@ export class LoginPage {
     async navigate() {
         await this.page.goto('http://localhost:3000/mission-control/login')
 
-        const title = await this.page.getByRole('heading', { name: 'Mission Control' })
+        const title = this.page.getByRole('heading', { name: 'Mission Control' })
         await expect(title).toBeVisible()
 
     }
@@ -29,7 +29,8 @@ export class LoginPage {
         await this.loginButton.click()
     }
 
-    async getErrorMessage(message: string) {
-        return await this.errorMessage.textContent()
+    async checkErrorMessage(message: string) {
+        await expect(this.errorMessage).toBeVisible()
+        await expect(this.errorMessage).toContainText(message)
     }
 }

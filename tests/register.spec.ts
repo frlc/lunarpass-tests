@@ -1,34 +1,15 @@
-import {test, expect} from '@playwright/test'
-import { LoginPage } from '../pages/login.page'
-import { Navbar } from '../pages/components/navbar'
+import { test, expect } from '../support'
 import { faker } from '@faker-js/faker'
 import { Mission, Login } from '../support/types'
-import { DashPage } from '../pages/dash.page'
-import { RegisterPage } from '../pages/register.page'
-import { Toast } from '../pages/components/toast'
-import { insertMission, deleteMissionById, deleteReservationById, deleteTicketById } from '../support/db'
+import { insertMission, cleanMissionData } from '../support/db'
+import { formatDate } from '../support/helpers'
 
-
-
-let loginPage: LoginPage
-let navbar: Navbar
-let dashPage: DashPage
-let registerPage: RegisterPage
-let toast: Toast
-
-test.beforeEach(async ({ page }) => {
-  loginPage = new LoginPage(page)
-  navbar = new Navbar(page)
-  dashPage = new DashPage(page)
-  registerPage = new RegisterPage(page)
-  toast = new Toast(page)
-
-  //Arrange: Acessar a página de login  
-  await loginPage.navigate()
-  
+test.beforeEach(async ({ app }) => {
+  //Arrange Before Each: Acessar a página de login
+  await app.loginPage.navigate()
 })
 
-test('deve cadastrar uma nova missão', async ({ page }) => {
+test('deve cadastrar uma nova missão', async ({ app }) => {
 
   const login: Login = {
     email: 'buzz@lunarpass.dev',
@@ -36,25 +17,28 @@ test('deve cadastrar uma nova missão', async ({ page }) => {
   }  
 
   const mission: Mission = {
-    id: 'LP-' + faker.string.alphanumeric({length: { min: 5, max: 5 }, casing: 'upper'}),
+    id: 'LP-0128F',
     rocket: 'Starship',
     baseId: 'aurora',
     departureDate: '2028-01-20',
     returnDate: '27 de jan. de 2028',
     price: 1000
-  } 
+  }
+  
+  //Arrange: Deletar missão, reserva e ticket caso já existam no banco de dados
+  await cleanMissionData(mission)
 
   //Act: Preencher os campos de login e senha e clicar no botão de login
-  await loginPage.login(login.email, login.password)
-  await expect(navbar.logoutButton).toBeVisible({timeout: 5_000})
+  await app.loginPage.login(login.email, login.password)
+  await expect(app.navbar.logoutButton).toBeVisible()
 
-  await dashPage.newMissionButton.click()
-  await expect(registerPage.h2ProgramarMissao).toBeVisible()
-  await registerPage.submitMissionForm(mission)
-  await expect(toast.toastMessage).toContainText('A nova missão foi adicionada ao catálogo e já está disponível para reservas.')
+  await app.dashPage.newMissionButton.click()
+  await expect(app.registerPage.h2ProgramarMissao).toBeVisible()
+  await app.registerPage.submitMissionForm(mission)
+  await expect(app.toast.toastMessage).toContainText('A nova missão foi adicionada ao catálogo e já está disponível para reservas.')
 })
 
-test('não deve cadastrar com código de missão incorreto', async ({ page }) => {
+test('não deve cadastrar com código de missão incorreto', async ({ app }) => {
 
   const login: Login = {
     email: 'buzz@lunarpass.dev',
@@ -71,16 +55,17 @@ test('não deve cadastrar com código de missão incorreto', async ({ page }) =>
   } 
 
   //Act: Preencher os campos de login e senha e clicar no botão de login
-  await loginPage.login(login.email, login.password)
-  await expect(navbar.logoutButton).toBeVisible({timeout: 5_000})
+  await app.loginPage.login(login.email, login.password)
+  await expect(app.navbar.logoutButton).toBeVisible()
 
-  await dashPage.newMissionButton.click()
-  await expect(registerPage.h2ProgramarMissao).toBeVisible()
-  await registerPage.submitMissionForm(mission)
-  await expect(registerPage.errorMessageIdFormat).toContainText('Use o formato LP-0000')
+  await app.dashPage.newMissionButton.click()
+  await expect(app.registerPage.h2ProgramarMissao).toBeVisible()
+  await app.registerPage.submitMissionForm(mission)
+  await expect(app.registerPage.errorMessageIdFormat).toContainText('Use o formato LP-0000')
 })
 
-test('não deve cadastrar com código de missão duplicado', async ({ page }) => {
+test('não deve cadastrar com código de missão duplicado', async ({ app }) => {
+
 //Arrange: Inserir missão no banco de dados
   const login: Login = {
     email: 'buzz@lunarpass.dev',
@@ -96,22 +81,19 @@ test('não deve cadastrar com código de missão duplicado', async ({ page }) =>
     price: 1000
   } 
 
-  const returnDate ='27 de jan. de 2028'
-
-  await deleteTicketById(mission.id)
-  await deleteReservationById(mission.id)
-  await deleteMissionById(mission.id)
+  //Arrange: Deletar missão, reserva e ticket caso já existam no banco de dados
+  await cleanMissionData(mission)
   await insertMission(mission)
 
   //Act: Preencher os campos de login e senha e clicar no botão de login
-  await loginPage.login(login.email, login.password)
-  await expect(navbar.logoutButton).toBeVisible({timeout: 5_000})
+  await app.loginPage.login(login.email, login.password)
+  await expect(app.navbar.logoutButton).toBeVisible()
 
-  await dashPage.newMissionButton.click()
-  await expect(registerPage.h2ProgramarMissao).toBeVisible()
-  mission.returnDate = returnDate
-  await registerPage.submitMissionForm(mission)
+  await app.dashPage.newMissionButton.click()
+  await expect(app.registerPage.h2ProgramarMissao).toBeVisible()
+  mission.returnDate = formatDate(mission.returnDate)
+  await app.registerPage.submitMissionForm(mission)
 
   //Assert: Verificar se a mensagem de erro é exibida
-  await expect(registerPage.errorMessageIdFormat).toContainText('Já existe uma missão com este ID.')
+  await expect(app.registerPage.errorMessageIdFormat).toContainText('Já existe uma missão com este ID.')
 })
